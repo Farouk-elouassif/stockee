@@ -17,4 +17,12 @@ WORKDIR /app/stockee
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "\
+if [ \"$DJANGO_ENV\" = 'prod' ]; then \
+    echo 'Starting Gunicorn for production'; \
+    gunicorn stockee.wsgi:application --bind 0.0.0.0:8000 --workers 3; \
+else \
+    echo 'Starting Django dev server'; \
+    python manage.py runserver 0.0.0.0:8000; \
+fi \
+"]

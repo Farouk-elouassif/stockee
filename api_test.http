@@ -1,0 +1,141 @@
+### Stockee API Testing
+### Base URL
+@baseUrl = http://localhost:8000/api
+@contentType = application/json
+
+### Variables (will be set from responses)
+# @accessToken = your_access_token_here
+# @refreshToken = your_refresh_token_here
+
+###############################################################################
+### 1. REGISTER NEW USER
+###############################################################################
+
+POST {{baseUrl}}/auth/register/
+Content-Type: {{contentType}}
+
+{
+  "username": "testuser",
+  "email": "testuser@example.com",
+  "password": "SecurePass123!",
+  "password2": "SecurePass123!",
+  "first_name": "Test",
+  "last_name": "User"
+}
+
+###############################################################################
+### 2. REGISTER ANOTHER USER (for testing)
+###############################################################################
+
+POST {{baseUrl}}/auth/register/
+Content-Type: {{contentType}}
+
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "JohnPass123!",
+  "password2": "JohnPass123!",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+
+###############################################################################
+### 3. LOGIN (Get JWT Tokens)
+###############################################################################
+
+POST {{baseUrl}}/auth/login/
+Content-Type: {{contentType}}
+
+{
+  "username": "testuser",
+  "password": "SecurePass123!"
+}
+
+###############################################################################
+### 4. GET USER PROFILE (Protected - Requires Token)
+### Replace YOUR_ACCESS_TOKEN with the access token from login/register
+###############################################################################
+
+GET {{baseUrl}}/auth/profile/
+Authorization: Bearer YOUR_ACCESS_TOKEN
+
+###############################################################################
+### 5. REFRESH ACCESS TOKEN
+### Replace YOUR_REFRESH_TOKEN with the refresh token from login/register
+###############################################################################
+
+POST {{baseUrl}}/auth/token/refresh/
+Content-Type: {{contentType}}
+
+{
+  "refresh": "YOUR_REFRESH_TOKEN"
+}
+
+###############################################################################
+### ERROR TESTING
+###############################################################################
+
+### 6. Register with mismatched passwords (should fail)
+POST {{baseUrl}}/auth/register/
+Content-Type: {{contentType}}
+
+{
+  "username": "errortest",
+  "email": "error@example.com",
+  "password": "SecurePass123!",
+  "password2": "DifferentPass123!"
+}
+
+### 7. Register with duplicate username (should fail)
+POST {{baseUrl}}/auth/register/
+Content-Type: {{contentType}}
+
+{
+  "username": "testuser",
+  "email": "different@example.com",
+  "password": "SecurePass123!",
+  "password2": "SecurePass123!"
+}
+
+### 8. Register with weak password (should fail)
+POST {{baseUrl}}/auth/register/
+Content-Type: {{contentType}}
+
+{
+  "username": "weakpass",
+  "email": "weak@example.com",
+  "password": "123",
+  "password2": "123"
+}
+
+### 9. Login with wrong credentials (should fail)
+POST {{baseUrl}}/auth/login/
+Content-Type: {{contentType}}
+
+{
+  "username": "testuser",
+  "password": "WrongPassword!"
+}
+
+### 10. Access protected endpoint without token (should fail)
+GET {{baseUrl}}/auth/profile/
+
+###############################################################################
+### EXAMPLE WITH ACTUAL TOKENS (After running register/login)
+###############################################################################
+
+### Example: After you register or login, copy the tokens here
+# @accessToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+# @refreshToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+
+### Get profile with token variable
+# GET {{baseUrl}}/auth/profile/
+# Authorization: Bearer {{accessToken}}
+
+### Refresh token with variable
+# POST {{baseUrl}}/auth/token/refresh/
+# Content-Type: {{contentType}}
+#
+# {
+#   "refresh": "{{refreshToken}}"
+# }
