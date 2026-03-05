@@ -258,12 +258,23 @@ class StockUpdate(models.Model):
 
 class UserProfile(models.Model):
     """
-    Extended user profile for notification preferences and settings.
+    Extended user profile for notification preferences, settings, and roles.
     """
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),
+        ('user', 'User'),
+    ]
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='profile'
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=ROLE_CHOICES,
+        default='user',
+        help_text="User role: admin has full access, user has standard access"
     )
     timezone = models.CharField(
         max_length=50,
@@ -306,7 +317,12 @@ class UserProfile(models.Model):
         verbose_name_plural = 'User Profiles'
 
     def __str__(self):
-        return f"Profile: {self.user.username}"
+        return f"Profile: {self.user.username} ({self.role})"
+
+    @property
+    def is_admin(self):
+        """Check if user has admin role."""
+        return self.role == 'admin'
 
 
 class AlertRule(models.Model):
