@@ -1,55 +1,45 @@
 services:
   database:
     container_name: stockee_db
-    image: postgres:latest
+    image: postgres:16
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
-      
     ports:
       - "5431:5432"
     volumes:
-      - .:/app
-
-    env_file:
-      - ./.env
+      - db_data:/var/lib/postgresql/data
     networks:
-      - stockee_network 
+      - stockee_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $DATABASE_USER -d $DATABASE_NAME"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
   stockee_backend:
     container_name: stockee_backend
-    depends_on:
-      - database
-    ports:
-      - "8000:8000"
     build: .
-    environment:
-      - DATABASE_NAME=${DATABASE_NAME}
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-      - DATABASE_HOST=${DATABASE_HOST}
-      - DATABASE_PORT=${DATABASE_PORT}
-
-      - DJANGO_SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - DATABASE_ENGINE=${DATABASE_ENGINE}
-      - DJANGOLOGLEVEL=${DJANGO_LOGLEVEL}
-      
     env_file:
       - .env
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
     networks:
-      - stockee_network 
+      - stockee_network
+    restart: unless-stopped
+    volumes:
+      - .:/app
+
 volumes:
   db_data:
+
 networks:
   stockee_network:
     driver: bridge
-
-
-
