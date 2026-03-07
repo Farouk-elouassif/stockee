@@ -63,7 +63,7 @@ stockee/
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Farouk-elouassif/stockee.git
 cd stockee
 ```
 
