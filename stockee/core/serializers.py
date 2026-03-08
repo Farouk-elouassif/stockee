@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import UserProfile
+from .models import UserProfile, Stock, StockUpdate, UserStockPreference
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -182,3 +182,130 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             }
         
         return data
+
+
+# =============================================================================
+# Stock Serializers
+# =============================================================================
+
+class StockListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for stock list views.
+    """
+    class Meta:
+        model = Stock
+        fields = (
+            'id', 'symbol', 'name', 'exchange', 'sector', 
+            'currency', 'last_price', 'last_price_updated'
+        )
+        read_only_fields = fields
+
+
+class StockDetailSerializer(serializers.ModelSerializer):
+    """
+    Full serializer for stock detail view with recent updates.
+    """
+    recent_updates = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stock
+        fields = (
+            'id', 'symbol', 'name', 'exchange', 'sector', 'currency',
+            'market_cap', 'last_price', 'last_price_updated', 'is_active',
+            'created_at', 'updated_at', 'recent_updates'
+        )
+        read_only_fields = fields
+
+    def get_recent_updates(self, obj):
+        """Get the last 30 stock updates."""
+        updates = obj.updates.all()[:30]
+        return StockUpdateSerializer(updates, many=True).data
+
+
+class StockCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating/updating stocks (admin only).
+    """
+    class Meta:
+        model = Stock
+        fields = (
+            'symbol', 'name', 'exchange', 'sector', 'currency',
+            'market_cap', 'is_active'
+        )
+
+    def validate_symbol(self, value):
+        """Ensure symbol is uppercase."""
+        return value.upper()
+
+
+class StockUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for stock price updates (OHLCV data).
+    """
+    class Meta:
+        model = StockUpdate
+        fields = (
+            'id', 'timestamp', 'open_price', 'high_price', 'low_price',
+            'close_price', 'volume', 'change_percent', 'trend',
+            'timeframe', 'data_source', 'ai_analysis', 'created_at'
+        )
+        read_only_fields = fields
+
+
+# =============================================================================
+# Watchlist Serializers
+# =============================================================================
+
+class WatchlistSerializer(serializers.ModelSerializer):
+    """
+    Serializer for reading watchlist items with nested stock info.
+    """
+    stock = StockListSerializer(read_only=True)
+
+    class Meta:
+        model = UserStockPreference
+        fields = (
+            'id', 'stock', 'notification_frequency', 'threshold_percent',
+            'is_active', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class WatchlistCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for adding stocks to watchlist.
+    """
+    stock_id = serializers.PrimaryKeyRelatedField(
+        queryset=Stock.objects.filter(is_active=True),
+        source='stock',
+        write_only=True
+    )
+
+    class Meta:
+        model = UserStockPreference
+        fields = ('stock_id', 'notification_frequency', 'threshold_percent')
+
+    def validate(self, attrs):
+        """Check if user already has this stock in watchlist."""
+        user = self.context['request'].user
+        stock = attrs.get('stock')
+        
+        if UserStockPreference.objects.filter(user=user, stock=stock).exists():
+            raise serializers.ValidationError({
+                'stock_id': 'This stock is already in your watchlist.'
+            })
+        return attrs
+
+    def create(self, validated_data):
+        """Create watchlist item with current user."""
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class WatchlistUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating watchlist preferences.
+    """
+    class Meta:
+        model = UserStockPreference
+        fields = ('notification_frequency', 'threshold_percent', 'is_active')
