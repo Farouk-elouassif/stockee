@@ -3,7 +3,7 @@ from rest_framework import permissions
 
 class IsAdminRole(permissions.BasePermission):
     """
-    Custom permission to only allow users with admin role.
+    Custom permission to only allow users with admin role or Django superusers.
     """
     message = "Admin access required."
 
@@ -11,7 +11,11 @@ class IsAdminRole(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         
-        # Check if user has profile and is admin
+        # Django superusers are always admin
+        if request.user.is_superuser:
+            return True
+        
+        # Check custom role in profile
         if hasattr(request.user, 'profile'):
             return request.user.profile.role == 'admin'
         return False
@@ -32,7 +36,7 @@ class IsOwner(permissions.BasePermission):
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
-    Allow read access to anyone, write access only to admins.
+    Allow read access to anyone, write access only to admins or superusers.
     """
     def has_permission(self, request, view):
         # Allow GET, HEAD, OPTIONS requests
@@ -43,6 +47,11 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         
+        # Django superusers are always admin
+        if request.user.is_superuser:
+            return True
+        
+        # Check custom role in profile
         if hasattr(request.user, 'profile'):
             return request.user.profile.role == 'admin'
         return False
