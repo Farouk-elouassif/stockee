@@ -85,8 +85,10 @@ class UserStockPreference(models.Model):
     Tracks which stocks a user wants to monitor and notification preferences.
     """
     FREQUENCY_CHOICES = [
-        ('daily', 'Daily'),
-        ('weekly', 'Weekly'),
+        ('realtime', 'Real-time'),
+        ('daily', 'Daily Digest'),
+        ('weekly', 'Weekly Digest'),
+        ('monthly', 'Monthly Digest'),
     ]
 
     user = models.ForeignKey(
@@ -100,10 +102,17 @@ class UserStockPreference(models.Model):
         related_name='user_preferences'
     )
     notification_frequency = models.CharField(
-        max_length=10,
+        max_length=15,
         choices=FREQUENCY_CHOICES,
         default='daily',
         help_text="How often to receive updates"
+    )
+    threshold_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=5.00,
+        validators=[MinValueValidator(0.1), MaxValueValidator(100)],
+        help_text="Alert when price changes by this percentage"
     )
     is_active = models.BooleanField(
         default=True,
